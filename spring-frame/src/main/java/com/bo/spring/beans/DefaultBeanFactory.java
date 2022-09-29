@@ -7,10 +7,7 @@ import org.apache.commons.lang3.StringUtils;
 import java.io.Closeable;
 import java.io.IOException;
 import java.lang.reflect.Method;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -85,6 +82,15 @@ public class DefaultBeanFactory implements BeanFactory, BeanDefinitionRegistry, 
 
     @Override
     public <T> Map<String, T> getBeanOfType(Class<T> type) throws Exception {
+        Set<String> names = this.typeMap.get(type);
+        if (names != null) {
+            HashMap<String, T> map = new HashMap<>();
+            for (String name : names) {
+                map.put(name, (T) this.getBean(name));
+            }
+            return map;
+        }
+
         return null;
     }
 
@@ -123,6 +129,12 @@ public class DefaultBeanFactory implements BeanFactory, BeanDefinitionRegistry, 
         if (this.containsBeanDefinition(beanName))
             throw new BeanDefinitionRegistryException("名字为[" + beanName + "] 的bean已经存在：" + this.getBeanDefinition(beanName));
         this.beanDefinitionMap.put(beanName, beanDefinition);
+        // type映射
+        try {
+            registerTypeMap();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     /**
@@ -149,15 +161,23 @@ public class DefaultBeanFactory implements BeanFactory, BeanDefinitionRegistry, 
         namesType.add(name);
     }
 
+    /**
+     * 递归找出所有的父类
+     * 递归结束条件：如果他的父类是Object停止递归
+     *
+     * @param name
+     * @param type
+     * @throws Exception
+     */
     public void registerSuperClassTypeMap(String name, Class<?> type) throws Exception {
         Class<?> superclass = type.getSuperclass();
-        if(superclass != null && !superclass.equals(Object.class)){
+        if (superclass != null && !superclass.equals(Object.class)) {
             // bean父类
-            this.registerTypeMap(name,superclass);
+            this.registerTypeMap(name, superclass);
             // 递归找出所有父类
-            this.registerSuperClassTypeMap(name,superclass);
+            this.registerSuperClassTypeMap(name, superclass);
             // 找出父类实现的接口注册
-            this.registerInterfaceTypeMap(name,superclass);
+            this.registerInterfaceTypeMap(name, superclass);
         }
     }
 
@@ -165,9 +185,9 @@ public class DefaultBeanFactory implements BeanFactory, BeanDefinitionRegistry, 
         Class<?>[] interfaces = type.getInterfaces();
         if (interfaces.length > 0) {
             for (Class<?> anInterface : interfaces) {
-                this.registerTypeMap(name,anInterface);
+                this.registerTypeMap(name, anInterface);
                 // 递归找出父类
-                this.registerInterfaceTypeMap(name,anInterface);
+                this.registerInterfaceTypeMap(name, anInterface);
             }
         }
     }
@@ -289,7 +309,7 @@ public class DefaultBeanFactory implements BeanFactory, BeanDefinitionRegistry, 
         for (Map.Entry<String, BeanDefinition> e : this.beanDefinitionMap.entrySet()) {
             String beanName = e.getKey();
             BeanDefinition bd = e.getValue();
-            if(bd.isSingleton() && StringUtils.isNoneBlank(bd.getDestroyMethodName())){
+            if (bd.isSingleton() && StringUtils.isNoneBlank(bd.getDestroyMethodName())) {
                 Object instance = this.singletonBeanMap.get(beanName);
                 try {
                     Method method = instance.getClass().getMethod(bd.getDestroyMethodName());

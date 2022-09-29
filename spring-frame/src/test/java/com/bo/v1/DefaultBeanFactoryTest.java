@@ -12,6 +12,7 @@ import org.omg.SendingContext.RunTime;
 
 import java.io.IOException;
 import java.lang.reflect.Method;
+import java.util.Map;
 
 /**
  * github
@@ -77,12 +78,22 @@ public class DefaultBeanFactoryTest {
         bd.setBeanClass(ABeanFactory.class);
         bd.setFactoryMethodName("getABean");
         bf.registerBeanDefinition("staticABean", bd);
+
+        GenericBeanDefinition beanDefinition = new GenericBeanDefinition();
+        beanDefinition.setBeanClass(ABean.class);
+        beanDefinition.setInitMethodName("init");
+        beanDefinition.setDestroyMethodName("destroy");
+        bf.registerBeanDefinition("bdABean",beanDefinition);
     }
 
 
 
     @AfterClass
     public static void testGetBean() throws Exception{
+
+        //执行typeMap生成
+   //     bf.registerTypeMap();
+
 //        System.out.println("构造方法执行-------");
 //        for (int i = 0; i < 3; i++) {
 //            ABean aBean = (ABean) bf.getBean("aBean");
@@ -101,9 +112,14 @@ public class DefaultBeanFactoryTest {
             ab.doSomething();
         }
 
+        System.out.println("getBeanOfType类型获取bean");
+        Map<String, ABean> beanOfType = bf.getBeanOfType(ABean.class);
+        beanOfType.forEach((s, aBean) -> System.out.println(s + " == " + aBean));
+
         System.out.println("type类型获取bean");
         ABean bean = bf.getBean(ABean.class);
         System.out.println(bean);
+
         // 程序结束的时候 自然结束, 主动关停,程序结束的时候调用关闭方法，调用bean指定的销毁方法
         Runtime.getRuntime().addShutdownHook(new Thread(()->{
             System.out.println("hook shut down");
