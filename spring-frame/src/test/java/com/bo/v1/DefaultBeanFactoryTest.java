@@ -13,6 +13,10 @@ import org.omg.SendingContext.RunTime;
 import java.io.IOException;
 import java.lang.reflect.Method;
 
+/**
+ * github
+ * token: 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
+ */
 public class DefaultBeanFactoryTest {
 
     static DefaultBeanFactory bf = new DefaultBeanFactory();
